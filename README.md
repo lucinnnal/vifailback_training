@@ -68,12 +68,6 @@ backward)만 돌려보는 점검용입니다. 체크포인트/로그는 남기�
 GPUS=4,5,6,7 bash scripts/smoke_test.sh
 ```
 
-> 참고: smoke test는 이미지 개수가 중앙값(11장) 근처인 샘플만 골라서
-> 사용합니다. 전체 데이터셋에는 최대 40장짜리 샘플도 있어(30장 이상만
-> 161개), 그런 샘플이 배치에 걸리면 24GB GPU에서 OOM이 날 수 있습니다.
-> 본 학습 전에 이 tail-case에 대한 대응(예: flash-attention 설치, `max_pixels`
-> 하향, ZeRO-3 offload 등)을 결정해야 합니다.
-
 ## 실행 (본 학습)
 
 ```bash
