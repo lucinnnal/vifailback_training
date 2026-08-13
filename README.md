@@ -1,102 +1,109 @@
 # Qwen3-VL-8B-Instruct LoRA SFT — ViFailback VQA
 
-Training script scaffold only — **no training has been run yet**.
+학습 스크립트 뼈대입니다 — **아직 실제 학습(full run)은 실행하지 않았습니다.**
 
-## Layout
+## 폴더 구조
 
 ```
 qwen3vl_sft/
   configs/
-    train_config.yaml     # model / data / lora / training hyperparameters
-    deepspeed_zero3.json  # DeepSpeed ZeRO-3 config
+    train_config.yaml     # model / data / lora / training 하이퍼파라미터
+    deepspeed_zero3.json  # DeepSpeed ZeRO-3 설정
   src/
-    data.py                # dataset + collator (prompt-masked labels, image loading)
-    train.py                # TRL SFTTrainer entrypoint (--smoke_test for a 1-step sanity check)
+    data.py                # 데이터셋 + collator (prompt 부분 라벨 마스킹, 이미지 로딩)
+    train.py                # TRL SFTTrainer 진입점 (--smoke_test 로 1-step 점검 가능)
   scripts/
-    launch_train.sh          # deepspeed launcher wrapper (full run)
-    smoke_test.sh             # deepspeed launcher wrapper (1-step sanity check)
+    launch_train.sh          # deepspeed 런처 래퍼 (전체 학습용)
+    smoke_test.sh             # deepspeed 런처 래퍼 (1-step 점검용)
   requirements.txt
 ```
 
-All project-level configuration is in YAML (`configs/train_config.yaml`). The
-one exception is `configs/deepspeed_zero3.json`: DeepSpeed's own config
-loader requires JSON, so that file can't be YAML.
+프로젝트 설정은 전부 YAML(`configs/train_config.yaml`)에 있습니다. 유일한 예외는
+`configs/deepspeed_zero3.json`입니다 — DeepSpeed 자체 config 로더가 JSON을
+요구하기 때문에 이 파일만은 YAML로 바꿀 수 없습니다.
 
-Launching is done with the `deepspeed` CLI directly (`deepspeed --include
-localhost:0,1,2,3 src/train.py ...`) rather than `accelerate launch` with a
-`distributed_type: DEEPSPEED` config file — the two set overlapping
-DeepSpeed options (`gradient_accumulation_steps`, `zero_stage`,
-`mixed_precision`, ...) and `transformers`' own `TrainingArguments(deepspeed=...)`
-raises a hard conflict error when both are present. Passing the DeepSpeed
-config once, via `SFTConfig(deepspeed=...)` in `src/train.py`, and launching
-with the plain `deepspeed` CLI avoids the double-specification.
+실행은 `accelerate launch` + `distributed_type: DEEPSPEED` config 조합이 아니라
+`deepspeed` CLI를 직접 사용합니다 (`deepspeed --include localhost:0,1,2,3
+src/train.py ...`). 두 방식을 같이 쓰면 `gradient_accumulation_steps`,
+`zero_stage`, `mixed_precision` 등 DeepSpeed 옵션이 양쪽에서 중복 지정되어
+`transformers`의 `TrainingArguments(deepspeed=...)`가 충돌 에러를 던집니다.
+DeepSpeed 설정은 `src/train.py`의 `SFTConfig(deepspeed=...)` 한 곳에서만
+지정하고, 실행은 순수 `deepspeed` CLI로 하면 이 중복 지정 문제를 피할 수
+있습니다.
 
-## Method summary (per request)
+## 학습 방법 요약 (요청 사항 기준)
 
-- 1 epoch over `ViFailback_VQA_train.json` (52,418 single-turn samples).
-- LoRA SFT via TRL's `SFTTrainer`, rank 32, alpha 64, applied only to the
-  LLM backbone's attention/MLP projections
+- `ViFailback_VQA_train.json` (52,418개 single-turn 샘플) 기준 1 epoch.
+- TRL `SFTTrainer`를 이용한 LoRA SFT, rank 32, alpha 64. LLM 백본의
+  attention/MLP projection에만 적용
   (`model.language_model.layers.*.{self_attn,mlp}.*_proj`).
-- The vision-language merger (`visual.merger`) is fully unfrozen (real
-  weights, via PEFT `modules_to_save`), not LoRA.
-- The vision tower itself stays frozen: PEFT auto-freezes any parameter
-  that is neither in `target_modules` nor `modules_to_save`, so no manual
-  freezing code is needed.
+- vision-language merger(`visual.merger`)는 LoRA가 아니라 완전히 unfreeze
+  (실제 가중치, PEFT `modules_to_save`로 처리).
+- vision tower 자체는 frozen 상태 유지: PEFT가 `target_modules`에도
+  `modules_to_save`에도 속하지 않는 파라미터는 자동으로 freeze하므로 별도의
+  freezing 코드가 필요 없습니다.
 - DeepSpeed ZeRO-3, bf16.
-- Per-GPU batch size 1, gradient accumulation 4 (effective batch = 16
-  across 4 GPUs), learning rate 1e-5, cosine schedule.
-- 4 GPUs via the `deepspeed` launcher.
+- GPU당 batch size 1, gradient accumulation 4 (4 GPU 기준 effective batch =
+  16), learning rate 1e-5, cosine 스케줄.
+- `deepspeed` 런처로 4 GPU 사용.
 
-## Data
+## 데이터
 
 - `train_json`: `/data1/dataset/ViFailback/VQA/ViFailback_VQA_train.json`
-- `image_root`: `/data1/dataset/ViFailback` (the `images` field paths, e.g.
-  `annotated_data/.../0.jpg`, are relative to this).
-- Each record is one user/assistant turn; `<image>` placeholders in the raw
-  JSON are stripped and re-inserted by the Qwen3-VL chat template based on
-  the images attached to the user turn, so counts always stay in sync.
-- Labels are masked so loss is computed only on the assistant response
-  (the whole user turn, including all image tokens, is masked out via a
-  prompt-length cutoff — see `Qwen3VLCollator` in `src/data.py`).
+- `image_root`: `/data1/dataset/ViFailback` (`images` 필드 경로, 예:
+  `annotated_data/.../0.jpg`,는 이 경로 기준 상대경로입니다).
+- 각 레코드는 user/assistant 1턴짜리 대화입니다. 원본 JSON의 `<image>`
+  placeholder는 제거한 뒤, Qwen3-VL chat template이 user 턴에 붙은 이미지
+  개수에 맞춰 다시 삽입하므로 이미지 개수와 토큰 수가 항상 일치합니다.
+- Loss는 assistant 응답 부분에서만 계산되도록 라벨을 마스킹했습니다 (user
+  턴 전체와 그 안의 모든 이미지 토큰은 prompt 길이 기준으로 마스킹 — 자세한
+  구현은 `src/data.py`의 `Qwen3VLCollator` 참고).
 
-## Model
+## 모델
 
-- `/home/hg_models/Qwen3-VL-8B-Instruct` — already a full local snapshot on
-  this machine, so no HF download / token is needed (avoids the
-  `/home/hg_models/token` permission error seen when resolving
-  `Qwen/Qwen3-VL-8B-Instruct` through the shared HF cache).
+- `/home/hg_models/Qwen3-VL-8B-Instruct` — 이 머신에 이미 로컬로 전체
+  스냅샷이 존재해서 HF 다운로드/토큰이 필요 없습니다 (공유 HF 캐시로
+  `Qwen/Qwen3-VL-8B-Instruct`를 resolve할 때 발생하던
+  `/home/hg_models/token` 권한 에러를 피할 수 있습니다).
 
-## Environment
+## 환경
 
-`vifailback_train` conda env (cloned from `qwen3_8b`, then rebuilt) has
-everything needed:
+`vifailback_train` conda 환경(`qwen3_8b`를 clone한 뒤 재구성)에 필요한 게
+모두 설치되어 있습니다:
 
-- `torch==2.11.0+cu128`, `torchvision`, `torchaudio` — reinstalled from the
-  `cu130` clone because the host driver (570.211.01) only supports up to
-  CUDA 12.8; `cu130` wheels silently ran CPU-only (`torch.cuda.is_available()
-  == False`). Verified now: `cuda available: True`, 8 GPUs visible.
+- `torch==2.11.0+cu128`, `torchvision`, `torchaudio` — 원래 clone에 있던
+  `cu130` 빌드를 재설치한 것입니다. 호스트 드라이버(570.211.01)가 CUDA
+  12.8까지만 지원해서, `cu130` wheel은 에러 없이 조용히 CPU-only로
+  동작했었습니다 (`torch.cuda.is_available() == False`). 현재는
+  `cuda available: True`, GPU 8개 인식 확인됨.
 - `transformers==5.7.0`, `trl==1.9.2`, `peft==0.20.0`,
   `deepspeed==0.19.5`, `accelerate==1.14.0`, `pyyaml`, `tensorboard`.
 
-`/home` is currently at ~100% disk usage (45G free) — LoRA checkpoints are
-small (adapter + merger only), but confirm free space before a long run
-since `configs/train_config.yaml`'s `training.output_dir` writes there.
-Point it at `/data1/...` instead if that's a concern.
+`/home` 디스크는 현재 ~100% 사용 중(여유 45G)입니다 — LoRA 체크포인트
+자체는 작지만(adapter + merger만 저장), `configs/train_config.yaml`의
+`training.output_dir`이 이 경로에 쓰기 때문에 본 학습 전에 여유 공간을
+확인하세요. 걱정되면 `/data1/...` 쪽으로 옮기면 됩니다.
 
 ## Smoke test
 
-One optimizer step (forward+backward) through the real LoRA + DeepSpeed
-ZeRO-3 pipeline, no checkpoints/logs written:
+실제 LoRA + DeepSpeed ZeRO-3 파이프라인으로 optimizer step 1회(forward +
+backward)만 돌려보는 점검용입니다. 체크포인트/로그는 남기지 않습니다:
 
 ```bash
 GPUS=4,5,6,7 bash scripts/smoke_test.sh
 ```
 
-## Launch (full run)
+> 참고: smoke test는 이미지 개수가 중앙값(11장) 근처인 샘플만 골라서
+> 사용합니다. 전체 데이터셋에는 최대 40장짜리 샘플도 있어(30장 이상만
+> 161개), 그런 샘플이 배치에 걸리면 24GB GPU에서 OOM이 날 수 있습니다.
+> 본 학습 전에 이 tail-case에 대한 대응(예: flash-attention 설치, `max_pixels`
+> 하향, ZeRO-3 offload 등)을 결정해야 합니다.
+
+## 실행 (본 학습)
 
 ```bash
 GPUS=0,1,2,3 bash scripts/launch_train.sh
-# or directly:
+# 또는 직접:
 /home/kipyokim/.conda/envs/vifailback_train/bin/deepspeed \
     --include localhost:0,1,2,3 \
     src/train.py --config configs/train_config.yaml
