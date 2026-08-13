@@ -1,0 +1,49 @@
+[2026-08-12 20:55:44,110] [WARNING] [runner.py:232:fetch_hostfile] Unable to find hostfile, will proceed with training with local resources only.
+[2026-08-12 20:55:44,110] [INFO] [runner.py:630:main] cmd = /home/kipyokim/.conda/envs/vifailback_train/bin/python3.10 -u -m deepspeed.launcher.launch --world_info=eyJsb2NhbGhvc3QiOiBbNCwgNSwgNiwgN119 --master_addr=127.0.0.1 --master_port=29500 --enable_each_rank_log=None --log_level=info src/train.py --config configs/train_config.yaml --smoke_test
+[2026-08-12 20:55:47,813] [INFO] [launch.py:162:main] WORLD INFO DICT: {'localhost': [4, 5, 6, 7]}
+[2026-08-12 20:55:47,813] [INFO] [launch.py:168:main] nnodes=1, num_local_procs=4, node_rank=0
+[2026-08-12 20:55:47,813] [INFO] [launch.py:179:main] global_rank_mapping=defaultdict(<class 'list'>, {'localhost': [0, 1, 2, 3]})
+[2026-08-12 20:55:47,813] [INFO] [launch.py:180:main] dist_world_size=4
+[2026-08-12 20:55:47,813] [INFO] [launch.py:184:main] Setting CUDA_VISIBLE_DEVICES=4,5,6,7
+[2026-08-12 20:55:47,814] [INFO] [launch.py:272:main] process 3587650 spawned with command: ['/home/kipyokim/.conda/envs/vifailback_train/bin/python3.10', '-u', 'src/train.py', '--local_rank=0', '--config', 'configs/train_config.yaml', '--smoke_test']
+[2026-08-12 20:55:47,814] [INFO] [launch.py:272:main] process 3587651 spawned with command: ['/home/kipyokim/.conda/envs/vifailback_train/bin/python3.10', '-u', 'src/train.py', '--local_rank=1', '--config', 'configs/train_config.yaml', '--smoke_test']
+[2026-08-12 20:55:47,815] [INFO] [launch.py:272:main] process 3587652 spawned with command: ['/home/kipyokim/.conda/envs/vifailback_train/bin/python3.10', '-u', 'src/train.py', '--local_rank=2', '--config', 'configs/train_config.yaml', '--smoke_test']
+[2026-08-12 20:55:47,815] [INFO] [launch.py:272:main] process 3587653 spawned with command: ['/home/kipyokim/.conda/envs/vifailback_train/bin/python3.10', '-u', 'src/train.py', '--local_rank=3', '--config', 'configs/train_config.yaml', '--smoke_test']
+Loading weights:   0%|          | 0/750 [00:00<?, ?it/s]Loading weights: 100%|██████████| 750/750 [00:00<00:00, 11592.37it/s]
+Loading weights:   0%|          | 0/750 [00:00<?, ?it/s]Loading weights: 100%|██████████| 750/750 [00:00<00:00, 9760.61it/s]
+Loading weights:   0%|          | 0/750 [00:00<?, ?it/s]Loading weights: 100%|██████████| 750/750 [00:00<00:00, 9858.43it/s]
+Loading weights:   0%|          | 0/750 [00:00<?, ?it/s]Loading weights: 100%|██████████| 750/750 [00:00<00:00, 8866.70it/s]
+[ViFailbackVQADataset] dropped 22257/52418 records with missing image files under /data1/dataset/ViFailback
+[ViFailbackVQADataset] dropped 22257/52418 records with missing image files under /data1/dataset/ViFailback
+[transformers] warmup_ratio is deprecated and will be removed in v5.2. Use `warmup_steps` instead.
+[transformers] warmup_ratio is deprecated and will be removed in v5.2. Use `warmup_steps` instead.
+[ViFailbackVQADataset] dropped 22257/52418 records with missing image files under /data1/dataset/ViFailback
+[transformers] warmup_ratio is deprecated and will be removed in v5.2. Use `warmup_steps` instead.
+[ViFailbackVQADataset] dropped 22257/52418 records with missing image files under /data1/dataset/ViFailback
+[transformers] warmup_ratio is deprecated and will be removed in v5.2. Use `warmup_steps` instead.
+[transformers] The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'eos_token_id': 151645, 'bos_token_id': None, 'pad_token_id': 151643}.
+[RANK 0] You are using PEFT with DeepSpeed ZeRO-3 and gradient checkpointing with `use_reentrant=False`. `use_reentrant` is forced to `True` in this configuration to ensure correct training. To remove this warning, unset `use_reentrant` in `gradient_checkpointing_kwargs` or set it to `True`.
+[transformers] The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'eos_token_id': 151645, 'bos_token_id': None, 'pad_token_id': 151643}.
+[transformers] The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'eos_token_id': 151645, 'bos_token_id': None, 'pad_token_id': 151643}.
+[transformers] The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'eos_token_id': 151645, 'bos_token_id': None, 'pad_token_id': 151643}.
+[RANK 0] Gradient accumulation steps mismatch: GradientAccumulationPlugin has 1, DeepSpeed config has 4. Using DeepSpeed's value.
+  0%|          | 0/1 [00:00<?, ?it/s]/home/kipyokim/.conda/envs/vifailback_train/lib/python3.10/site-packages/torch/utils/checkpoint.py:232: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  check_backward_validity(args)
+/home/kipyokim/.conda/envs/vifailback_train/lib/python3.10/site-packages/torch/utils/checkpoint.py:232: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  check_backward_validity(args)
+/home/kipyokim/.conda/envs/vifailback_train/lib/python3.10/site-packages/torch/utils/checkpoint.py:232: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  check_backward_validity(args)
+/home/kipyokim/.conda/envs/vifailback_train/lib/python3.10/site-packages/torch/utils/checkpoint.py:232: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  check_backward_validity(args)
+[2026-08-12 20:56:46,528] [WARNING] [stage3.py:2627:step] 11 pytorch allocator cache flushes since last step. this happens when there is high memory pressure and is detrimental to performance. if this is happening frequently consider adjusting settings to reduce memory consumption. If you are unable to make the cache flushes go away consider adding get_accelerator().empty_cache() calls in your training loop to ensure that all ranks flush their caches at the same time
+100%|██████████| 1/1 [00:21<00:00, 21.80s/it]                                             {'loss': '1.568', 'grad_norm': '3.494', 'learning_rate': '0', 'entropy': '0.5212', 'num_tokens': '6.294e+04', 'mean_token_accuracy': '0.6965', 'epoch': '0.5'}
+100%|██████████| 1/1 [00:21<00:00, 21.80s/it]                                             {'train_runtime': '21.91', 'train_samples_per_second': '0.73', 'train_steps_per_second': '0.046', 'train_loss': '1.568', 'epoch': '0.5'}
+100%|██████████| 1/1 [00:21<00:00, 21.80s/it][smoke_test] forward/backward step completed successfully.[smoke_test] forward/backward step completed successfully.
+
+100%|██████████| 1/1 [00:21<00:00, 21.91s/it]
+[smoke_test] forward/backward step completed successfully.
+[smoke_test] forward/backward step completed successfully.
+[2026-08-12 20:56:49,906] [INFO] [launch.py:367:main] Process 3587650 exits successfully.
+[2026-08-12 20:56:49,907] [INFO] [launch.py:367:main] Process 3587653 exits successfully.
+[2026-08-12 20:56:49,907] [INFO] [launch.py:367:main] Process 3587651 exits successfully.
+[2026-08-12 20:56:49,907] [INFO] [launch.py:367:main] Process 3587652 exits successfully.

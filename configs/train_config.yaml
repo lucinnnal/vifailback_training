@@ -1,0 +1,61 @@
+# =====================================================================
+# Qwen3-VL-8B-Instruct LoRA SFT configuration for ViFailback VQA
+# All hyperparameters/paths live here; train.py only contains logic.
+# =====================================================================
+
+model:
+  # Local snapshot already cached on this machine (no HF download needed).
+  name_or_path: /home/hg_models/Qwen3-VL-8B-Instruct
+  torch_dtype: bfloat16
+  attn_implementation: sdpa   # switch to "flash_attention_2" once flash-attn is installed
+
+data:
+  train_json: /data1/dataset/ViFailback/VQA/ViFailback_VQA_train.json
+  # image paths inside the json are relative to this root, e.g.
+  # "annotated_data/xxx/frames/.../0.jpg" -> <image_root>/annotated_data/xxx/...
+  image_root: /data1/dataset/ViFailback
+  max_pixels: 1003520          # cap per-image tokens (28*28*1280), keeps VRAM in check with up to 40 imgs/sample
+  min_pixels: 3136             # 28*28
+  # ViFailback_VQA_train.json has no held-out split; carve off a small dev slice locally
+  eval_ratio: 0.0
+  seed: 42
+
+lora:
+  r: 32
+  lora_alpha: 64
+  lora_dropout: 0.05
+  bias: none
+  task_type: CAUSAL_LM
+  # LoRA is injected only into the LLM backbone's attention/MLP projections.
+  target_modules: 'model\.language_model\.layers\.\d+\.(self_attn\.(q_proj|k_proj|v_proj|o_proj)|mlp\.(gate_proj|up_proj|down_proj))$'
+  # Fully unfrozen (not LoRA, real weights) alongside the LoRA adapters:
+  # the vision-language merger/projector. Everything else (incl. the vision
+  # tower) stays frozen automatically because it is neither in
+  # target_modules nor modules_to_save.
+  modules_to_save:
+    - visual.merger
+
+training:
+  output_dir: /home/kipyokim/failure_analysis/qwen3vl_sft/outputs/qwen3vl8b_vifailback_lora
+  num_train_epochs: 1
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 4
+  learning_rate: 1.0e-5
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.03
+  weight_decay: 0.0
+  max_grad_norm: 1.0
+  logging_steps: 5
+  save_strategy: steps
+  save_steps: 200
+  save_total_limit: 3
+  bf16: true
+  gradient_checkpointing: true
+  dataloader_num_workers: 4
+  report_to: [tensorboard]
+  seed: 42
+
+deepspeed:
+  config_file: /home/kipyokim/failure_analysis/qwen3vl_sft/configs/deepspeed_zero3.json
+
+num_gpus: 4
