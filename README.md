@@ -22,16 +22,7 @@ qwen3vl_sft/
 `configs/deepspeed_zero3.json`입니다 — DeepSpeed 자체 config 로더가 JSON을
 요구하기 때문에 이 파일만은 YAML로 바꿀 수 없습니다.
 
-실행은 `accelerate launch` + `distributed_type: DEEPSPEED` config 조합이 아니라
-`deepspeed` CLI를 직접 사용합니다 (`deepspeed --include localhost:0,1,2,3
-src/train.py ...`). 두 방식을 같이 쓰면 `gradient_accumulation_steps`,
-`zero_stage`, `mixed_precision` 등 DeepSpeed 옵션이 양쪽에서 중복 지정되어
-`transformers`의 `TrainingArguments(deepspeed=...)`가 충돌 에러를 던집니다.
-DeepSpeed 설정은 `src/train.py`의 `SFTConfig(deepspeed=...)` 한 곳에서만
-지정하고, 실행은 순수 `deepspeed` CLI로 하면 이 중복 지정 문제를 피할 수
-있습니다.
-
-## 학습 방법 요약 (요청 사항 기준)
+## 학습 방법 요약
 
 - `ViFailback_VQA_train.json` (52,418개 single-turn 샘플) 기준 1 epoch.
 - TRL `SFTTrainer`를 이용한 LoRA SFT, rank 32, alpha 64. LLM 백본의
@@ -66,23 +57,20 @@ DeepSpeed 설정은 `src/train.py`의 `SFTConfig(deepspeed=...)` 한 곳에서�
   `Qwen/Qwen3-VL-8B-Instruct`를 resolve할 때 발생하던
   `/home/hg_models/token` 권한 에러를 피할 수 있습니다).
 
-## 환경
+## 환경 설정
 
-`vifailback_train` conda 환경(`qwen3_8b`를 clone한 뒤 재구성)에 필요한 게
-모두 설치되어 있습니다:
+```bash
+# qwen3_8b 환경을 clone해서 vifailback_train 생성
+conda create --name vifailback_train --clone qwen3_8b -y
 
-- `torch==2.11.0+cu128`, `torchvision`, `torchaudio` — 원래 clone에 있던
-  `cu130` 빌드를 재설치한 것입니다. 호스트 드라이버(570.211.01)가 CUDA
-  12.8까지만 지원해서, `cu130` wheel은 에러 없이 조용히 CPU-only로
-  동작했었습니다 (`torch.cuda.is_available() == False`). 현재는
-  `cuda available: True`, GPU 8개 인식 확인됨.
-- `transformers==5.7.0`, `trl==1.9.2`, `peft==0.20.0`,
-  `deepspeed==0.19.5`, `accelerate==1.14.0`, `pyyaml`, `tensorboard`.
+# 드라이버가 CUDA 12.8까지만 지원하므로 torch를 cu128 빌드로 재설치
+/home/kipyokim/.conda/envs/vifailback_train/bin/pip uninstall -y torch torchvision torchaudio
+/home/kipyokim/.conda/envs/vifailback_train/bin/pip install torch torchvision torchaudio \
+    --index-url https://download.pytorch.org/whl/cu128
 
-`/home` 디스크는 현재 ~100% 사용 중(여유 45G)입니다 — LoRA 체크포인트
-자체는 작지만(adapter + merger만 저장), `configs/train_config.yaml`의
-`training.output_dir`이 이 경로에 쓰기 때문에 본 학습 전에 여유 공간을
-확인하세요. 걱정되면 `/data1/...` 쪽으로 옮기면 됩니다.
+# 나머지 학습 패키지 설치
+/home/kipyokim/.conda/envs/vifailback_train/bin/pip install trl peft deepspeed accelerate pyyaml tensorboard
+```
 
 ## Smoke test
 
