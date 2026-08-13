@@ -18,10 +18,6 @@ qwen3vl_sft/
   requirements.txt
 ```
 
-프로젝트 설정은 전부 YAML(`configs/train_config.yaml`)에 있습니다. 유일한 예외는
-`configs/deepspeed_zero3.json`입니다 — DeepSpeed 자체 config 로더가 JSON을
-요구하기 때문에 이 파일만은 YAML로 바꿀 수 없습니다.
-
 ## 학습 방법 요약
 
 - `ViFailback_VQA_train.json` (52,418개 single-turn 샘플) 기준 1 epoch.
@@ -60,16 +56,9 @@ qwen3vl_sft/
 ## 환경 설정
 
 ```bash
-# qwen3_8b 환경을 clone해서 vifailback_train 생성
-conda create --name vifailback_train --clone qwen3_8b -y
-
-# 드라이버가 CUDA 12.8까지만 지원하므로 torch를 cu128 빌드로 재설치
-/home/kipyokim/.conda/envs/vifailback_train/bin/pip uninstall -y torch torchvision torchaudio
-/home/kipyokim/.conda/envs/vifailback_train/bin/pip install torch torchvision torchaudio \
-    --index-url https://download.pytorch.org/whl/cu128
-
-# 나머지 학습 패키지 설치
-/home/kipyokim/.conda/envs/vifailback_train/bin/pip install trl peft deepspeed accelerate pyyaml tensorboard
+conda create --name vifailback_train python=3.10 -y
+conda activate vifailback_train
+pip install -r requirements.txt
 ```
 
 ## Smoke test
@@ -92,7 +81,7 @@ GPUS=4,5,6,7 bash scripts/smoke_test.sh
 ```bash
 GPUS=0,1,2,3 bash scripts/launch_train.sh
 # 또는 직접:
-/home/kipyokim/.conda/envs/vifailback_train/bin/deepspeed \
-    --include localhost:0,1,2,3 \
+conda run -n vifailback_train --no-capture-output \
+    deepspeed --include localhost:0,1,2,3 \
     src/train.py --config configs/train_config.yaml
 ```

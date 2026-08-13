@@ -4,11 +4,11 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-CONDA_ENV=vifailback_train   # torch(cu128)/transformers/trl/peft/deepspeed/accelerate, see README
+CONDA_ENV=vifailback_train   # see README's "환경 설정" for how to create this
 export HF_HOME=/home/hg_models
 export HF_DATASETS_CACHE=/home/dataset
 GPUS="${GPUS:-0,1,2,3}"
 
-"/home/kipyokim/.conda/envs/${CONDA_ENV}/bin/deepspeed" \
-    --include "localhost:${GPUS}" \
+conda run -n "${CONDA_ENV}" --no-capture-output \
+    deepspeed --include "localhost:${GPUS}" \
     src/train.py --config configs/train_config.yaml
