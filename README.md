@@ -1,7 +1,5 @@
 # Qwen3-VL-8B-Instruct LoRA SFT — ViFailback VQA
 
-학습 스크립트 뼈대입니다 — **아직 실제 학습(full run)은 실행하지 않았습니다.**
-
 ## 폴더 구조
 
 ```
